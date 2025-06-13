@@ -38,7 +38,7 @@
 <script>
 import { reactive, onMounted, ref } from 'vue';
 import db from './db';
-import { push, ref as dbRef } from "firebase/database";
+import { push, ref as dbRef, onValue } from "firebase/database";
 
 export default {
 	setup() {        //Composition Function
@@ -58,6 +58,10 @@ export default {
 			}
 		}
 
+		const Logout = () => {
+			state.username = "";
+		}
+
 		const SendMessage = () => {
 			// Reference to the "messages" node in Realtime Database
 			const messagesRef = dbRef(db, "messages");
@@ -73,31 +77,33 @@ export default {
 			inputMessage.value = "";
 		};
 
-		onMounted (() => {
-			const messagesRef = db.database().ref("messages");
+		onMounted(() => {
+			const messagesRef = dbRef(db, "messages");
 
-			messagesRef.on('value', snapshot => {
+			onValue(messagesRef, snapshot => {
 				const data = snapshot.val();
-				let messages = [];
+				const messages = [];
 
-				Object.keys(data).forEach(key => {
-					messages.push({
-						id: key,
-						username: data[key].username,
-						content: data[key].content
+				if (data) {
+					Object.keys(data).forEach(key => {
+						messages.push({
+							id: key,
+							username: data[key].username,
+							content: data[key].content
+						});
 					});
-				});
-
+				}
 				state.messages = messages;
-			})
-		})
+			});
+		});
 
 		return {
 			inputUsername,
 			Login,
 			state,
 			inputMessage,
-			SendMessage
+			SendMessage,
+			Logout
 		}
 	}
 }
